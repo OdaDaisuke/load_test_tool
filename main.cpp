@@ -29,13 +29,12 @@ size_t call_back_func(char* ptr, size_t size, size_t nmemb, std::string* stream)
     return realsize;
 }
 
-struct RequestRes url_get_proc (const char url[], double response_time)
+void url_get_proc (const char url[], std::string chunk, double response_time)
 {
     struct RequestRes response;
     CURL *curl;
     CURLcode res;
     curl = curl_easy_init();
-    std::string chunk;
     if (curl) {
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, call_back_func);
@@ -49,8 +48,6 @@ struct RequestRes url_get_proc (const char url[], double response_time)
         std::cout << "curl error" << std::endl;
         exit(1);
     }
-    response.body = chunk;
-    return response;
 }
 
 const char* retrieve_flag(int argc, char *argv[], const std::string target_flag)
@@ -98,7 +95,7 @@ int main (int argc, char *argv[])
 
     for (int i = 0;i < rps; i++) {
         struct RequestRes response;
-        threads.push_back(std::thread(url_get_proc, url_target, response.response_time));
+        threads.push_back(std::thread(url_get_proc, url_target, response.body, response.response_time));
         responses.push_back(response);
     }
     for (int i = 0; i < rps; i++) {
