@@ -109,6 +109,10 @@ int main (int argc, char *argv[])
     double avg_response_time = response_time_sum / double(rps);
     std::cout << "URL: " << url_target << std::endl;
     std::cout << "RPS: " << rps << std::endl;
+    std::cout << "DURATION: " << rps << std::endl;
     std::cout << "AVG RESPONSE TIME: " << avg_response_time << "[sec]" << std::endl;
+    std::cout << "MEDIAN RESPONSE TIME: " << avg_response_time << "[sec]" << std::endl;
+    std::cout << "MAX RESPONSE TIME: " << avg_response_time << "[sec]" << std::endl;
+    std::cout << "MIN RESPONSE TIME: " << avg_response_time << "[sec]" << std::endl;
     return 0;
 }
