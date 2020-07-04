@@ -4,15 +4,23 @@
 #include <iostream>
 #include <thread>
 #include <cstdio>
+#include <future>
 #include <cstdint>
 
 #include <curl/curl.h>
 
-int response_time;
-const std::string SIZE_FLAG = "-s";
+// TODO: rps & duration
+const std::string RPS_FLAG = "-rps";
 const std::string URL_FLAG = "-url";
-const std::string CALL_DURATION_FLAG = "-d";
+const std::string DURATION_FLAG = "-d";
 const std::string REQUEST_BODY_FLAG = "-b";
+const std::string REQUEST_CONTENT_TYPE = "-ct";
+
+struct RequestRes
+{
+    double response_time;
+    std::string body;
+};
 
 size_t call_back_func(char* ptr, size_t size, size_t nmemb, std::string* stream)
 {
@@ -21,8 +29,9 @@ size_t call_back_func(char* ptr, size_t size, size_t nmemb, std::string* stream)
     return realsize;
 }
 
-std::string url_get_proc (const char url[])
+struct RequestRes url_get_proc (const char url[], double response_time)
 {
+    struct RequestRes response;
     CURL *curl;
     CURLcode res;
     curl = curl_easy_init();
@@ -40,7 +49,8 @@ std::string url_get_proc (const char url[])
         std::cout << "curl error" << std::endl;
         exit(1);
     }
-    return chunk;
+    response.body = chunk;
+    return response;
 }
 
 const char* retrieve_flag(int argc, char *argv[], const std::string target_flag)
@@ -57,9 +67,14 @@ const char* retrieve_flag(int argc, char *argv[], const std::string target_flag)
     return default_res;
 }
 
-int retrieve_times(int argc, char *argv[])
+int retrieve_rps(int argc, char *argv[])
 {
-    return atoi(retrieve_flag(argc, argv, SIZE_FLAG));
+    return atoi(retrieve_flag(argc, argv, RPS_FLAG));
+}
+
+int retrieve_duration(int argc, char *argv[])
+{
+    return atoi(retrieve_flag(argc, argv, DURATION_FLAG));
 }
 
 char retrieve_url(int argc, char *argv[])
@@ -70,24 +85,30 @@ char retrieve_url(int argc, char *argv[])
 
 int main (int argc, char *argv[])
 {
-    const int times = retrieve_times(argc, argv);
-    if (times <= 0) {
-        std::cout << "INVALID TIMES" << std::endl;
+    const int rps = retrieve_rps(argc, argv);
+    if (rps <= 0) {
+        std::cout << "INVALID RPS" << std::endl;
         return 1;
     }
 
-    std::cout << "REQUEST " << times << "TIMES" << std::endl;
-    std::vector<std::thread> threads;
-
     char url_target[] = "http://httpbin.org/get";
-    for (int i = 0;i < times; i++) {
-        threads.push_back(std::thread(url_get_proc, url_target));
-        // TODO: calc statistic
+    std::vector<std::thread> threads;
+    std::vector<RequestRes> responses;
+    double response_time_sum;
+
+    for (int i = 0;i < rps; i++) {
+        struct RequestRes response;
+        threads.push_back(std::thread(url_get_proc, url_target, response.response_time));
+        responses.push_back(response);
     }
-    for (int i = 0; i < times; i++) {
+    for (int i = 0; i < rps; i++) {
         threads[i].join();
+        response_time_sum += responses[i].response_time;
     }
 
-    // TODO: generate report
+    double avg_response_time = response_time_sum / double(rps);
+    std::cout << "URL: " << url_target << std::endl;
+    std::cout << "RPS: " << rps << std::endl;
+    std::cout << "AVG RESPONSE TIME: " << avg_response_time << "[sec]" << std::endl;
     return 0;
 }
